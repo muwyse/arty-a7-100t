@@ -33,6 +33,16 @@ To generate a project:
 To run synthesis, implementation, and generate bitsream:
 `vivado -mode batch -source tcl/generate_bitstream.tcl`
 
+## BlackParrot on Arty (ArtyParrot)
+[BlackParrot](https://github.com/black-parrot/black-parrot) is a 64-bit RISC-V processor initially
+developed at the University of Washington. This repository contains scripts and the necessary
+files to instantiate a single BlackParrot processor on the Arty A7, which connects to the on-board
+DDR3 SDRAM using the design detailed in the rest of this README. The ArtyParrot design also
+includes a UART module that acts as the gateway between a PC Host and BlackParrot, allowing the user
+to load programs to memory, configure the processor core, and then receive I/O from the core
+during execution. More details and instructions for instantiating this design can be found in the
+[ArtyParrot documentation](docs/arty_parrot.md).
+
 ## Programming the Arty A7 using Quad SPI Flash Memory
 
 The Arty A7 has a 16 MiB Quad-SPI Flash memory that can be used to store the FPGA configuration

@@ -1,5 +1,20 @@
 `timescale 1ns / 1ps
 
+/**
+ *
+ * Name:
+ *   arty.sv
+ *
+ * Description:
+ *   This is the top-level design to instantiate the Arty A7's on-board 256 MiB DDR3 SDRAM.
+ *
+ *    This module instantiates:
+ *    - a Vivado generated Block Design with 256 MiB DDR3 SDRAM exposed via AXI4 Lite (and associated clocks)
+ *    - an AXI4 Lite traffic generator that writes then reads the DDR3 memory
+ *    - basic I/O using switches and buttons to control the RGB LEDs
+ *    - basic I/O using button and LED to start the AXI4 Lite traffic generator and report status (done or error)
+ */
+
 module arty
   (ddr3_sdram_addr,
   ddr3_sdram_ba,

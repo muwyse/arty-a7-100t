@@ -1,3 +1,5 @@
 *.jou
 *.log
 arty-memory/
+arty-parrot/
+py/__pycache__/

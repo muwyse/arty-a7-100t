@@ -2,8 +2,8 @@
 
 module axi4_lite_traffic_gen(
   // AXI
-  input clk_i // connects to traffic gen as clock
-  , input reset_n_i // connects to traffic gen as reset_n_i
+  input clk_i
+  , input reset_n_i
   // read address
   , output logic [27:0] araddr_o
   , output logic [2:0] arprot_o
@@ -28,6 +28,7 @@ module axi4_lite_traffic_gen(
   , input wready_i
   , output logic [7:0] wstrb_o
   , output logic wvalid_o
+  // errors and control
   , output logic rd_error_o
   , output logic wr_error_o
   , output logic done_o
@@ -50,7 +51,7 @@ module axi4_lite_traffic_gen(
   } state_e;
   state_e state_r, state_n;
 
-  logic reset_r, reset_n;
+  logic reset_r;
   always_ff @(posedge clk_i) begin
     reset_r <= reset_n_i;
   end

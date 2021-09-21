@@ -1,6 +1,7 @@
 set script_jobs 8
 set script_file "generate_bitstream.tcl"
 set project_name "arty-memory"
+set origin_dir "."
 
 # Help information for this script
 proc print_help {} {
@@ -11,6 +12,7 @@ proc print_help {} {
   puts "$script_file"
   puts "$script_file -tclargs \[--jobs <N>\]"
   puts "$script_file -tclargs \[--project_name <name>\]"
+  puts "$script_file -tclargs \[--origin_dir <path>\]"
   puts "$script_file -tclargs \[--help\]\n"
   puts "Usage:"
   puts "Name                   Description"
@@ -18,6 +20,10 @@ proc print_help {} {
   puts "\[--help\]               Print help information for this script"
   puts "\[--jobs <N>\]           Number of jobs for synthesis and implementation"
   puts "\[--project_name <name>\] Name of project"
+  puts "\[--origin_dir <path>\]  Determine source file paths wrt this path. Default"
+  puts "                       origin_dir path value is \".\", otherwise, the value"
+  puts "                       that was set with the \"-paths_relative_to\" switch"
+  puts "                       when this script was generated.\n"
   puts "-------------------------------------------------------------------------\n"
   exit 0
 }
@@ -43,6 +49,7 @@ set project_xpr "${project_name}/${project_name}.xpr"
 
 # open project
 open_project $project_xpr
+set_param board.repoPaths ${origin_dir}/common/board_files
 
 # run implementation
 reset_run synth_1
