@@ -87,7 +87,7 @@ module arty_uart
   uart_rx
    #(.clk_per_bit_p(uart_clk_per_bit_p)
      ,.data_bits_p(uart_data_bits_p)
-     ,.parity_bit_p(uart_parity_bits_p)
+     ,.parity_bits_p(uart_parity_bits_p)
      ,.stop_bits_p(uart_stop_bits_p)
      ,.parity_odd_p(uart_parity_odd_p)
      )
@@ -131,7 +131,7 @@ module arty_uart
   uart_tx
    #(.clk_per_bit_p(uart_clk_per_bit_p)
      ,.data_bits_p(uart_data_bits_p)
-     ,.parity_bit_p(uart_parity_bits_p)
+     ,.parity_bits_p(uart_parity_bits_p)
      ,.stop_bits_p(uart_stop_bits_p)
      ,.parity_odd_p(uart_parity_odd_p)
      )

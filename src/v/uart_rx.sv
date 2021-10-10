@@ -10,7 +10,7 @@
 module uart_rx
     #(parameter clk_per_bit_p = 10416 // 100 MHz clock / 9600 Baud
       , parameter data_bits_p = 8 // between 5 and 9 bits
-      , parameter parity_bit_p = 0 // 0 or 1
+      , parameter parity_bits_p = 0 // 0 or 1
       , parameter parity_odd_p = 0 // 0 for even parity, 1 for odd parity
       , parameter stop_bits_p = 1 // 1 or 2
       )
@@ -126,14 +126,14 @@ module uart_rx
                 if (clk_cnt_r == (clk_per_bit_p - 'd1)) begin
                     clk_cnt_n = '0;
                     rx_data_n[data_cnt_r] = data_r;
-                    if (parity_bit_p == 1) begin
+                    if (parity_bits_p == 1) begin
                         parity_cnt_n = parity_cnt_r + data_r;
                     end
                     if (data_cnt_r < (data_bits_p-1)) begin
                         data_cnt_n = data_cnt_r + 'd1;
                     end else begin
                         data_cnt_n = '0;
-                        rx_state_n = (parity_bit_p == 1) ? e_parity_bit : e_stop_bit;
+                        rx_state_n = (parity_bits_p == 1) ? e_parity_bit : e_stop_bit;
                     end
                 end else begin
                     clk_cnt_n = clk_cnt_r + 'd1;
