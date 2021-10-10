@@ -2,7 +2,7 @@
 	path = blackparrot/rtl
 	url = git@github.com:black-parrot/black-parrot.git
   branch = dev
-  ignore = all
+  ignore = dirty
 [submodule "blackparrot/sdk"]
 	path = blackparrot/sdk
 	url = git@github.com:black-parrot-sdk/black-parrot-sdk.git
