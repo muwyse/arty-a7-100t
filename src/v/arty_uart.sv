@@ -42,12 +42,10 @@ module arty_uart
   );
 
   logic clock_30M_lo;
-  logic reset_30M_lo;
   logic clock_60M_lo;
-  logic reset_60M_lo;
 
   // reset register and active low to active high conversion
-  wire reset = reset_30M_lo;
+  wire reset = ~external_reset_n_i;
   wire clock = clock_30M_lo;
 
   // debounce buttons
@@ -82,70 +80,38 @@ module arty_uart
 
   logic rx_v_lo, rx_ready_and_li;
   logic [uart_data_bits_p-1:0] rx_lo;
-  logic rx_parity_error_lo, rx_frame_error_lo;
-  // UART RX
-  uart_rx
+  logic rx_parity_error_lo, rx_frame_error_lo, rx_overflow_error_lo;
+  // UART
+  uart
    #(.clk_per_bit_p(uart_clk_per_bit_p)
      ,.data_bits_p(uart_data_bits_p)
      ,.parity_bits_p(uart_parity_bits_p)
      ,.stop_bits_p(uart_stop_bits_p)
      ,.parity_odd_p(uart_parity_odd_p)
+     ,.rx_buffer_els_p(uart_rx_buffer_els_p)
+     ,.tx_buffer_els_p(uart_tx_buffer_els_p)
      )
-    rx
+    uart_buffered
     (.clk_i(clock)
      ,.reset_i(reset)
      // from external
      ,.rx_i(uart_rx_i)
-     // to buffer
+     // to logic
      ,.rx_v_o(rx_v_lo)
      ,.rx_o(rx_lo)
+     ,.rx_yumi_i(rx_v_lo & rx_ready_and_li)
+     // rx errors
      ,.rx_parity_error_o(rx_parity_error_lo)
      ,.rx_frame_error_o(rx_frame_error_lo)
-     );
-
-  logic tx_v_li, tx_ready_and_lo;
-  logic [uart_data_bits_p-1:0] tx_li;
-
-  // UART Buffer
-  bsg_fifo_1r1w_small
-   #(.width_p(uart_data_bits_p)
-     ,.els_p(uart_rx_buffer_els_p)
-     ,.ready_THEN_valid_p(0)
-     )
-    uart_rx_buffer
-    (.clk_i(clock)
-     ,.reset_i(reset)
-     // from RX
-     ,.v_i(rx_v_lo)
-     ,.ready_o(rx_ready_and_li)
-     ,.data_i(rx_lo)
-     // to TX
-     ,.v_o(tx_v_li)
-     ,.data_o(tx_li)
-     ,.yumi_i(tx_yumi_lo)
-     );
-  assign tx_yumi_lo = tx_v_li & tx_ready_and_lo;
-  wire rx_overflow = rx_v_lo & ~rx_ready_and_li;
-
-  // UART TX
-  uart_tx
-   #(.clk_per_bit_p(uart_clk_per_bit_p)
-     ,.data_bits_p(uart_data_bits_p)
-     ,.parity_bits_p(uart_parity_bits_p)
-     ,.stop_bits_p(uart_stop_bits_p)
-     ,.parity_odd_p(uart_parity_odd_p)
-     )
-    tx
-    (.clk_i(clock)
-     ,.reset_i(reset)
-     // from buffer
-     ,.tx_v_i(tx_v_li)
-     ,.tx_i(tx_li)
-     ,.tx_ready_and_o(tx_ready_and_lo)
+     ,.rx_overflow_error_o(rx_overflow_error_lo)
      // to external
      ,.tx_o(uart_tx_o)
      ,.tx_v_o(/* unused */)
      ,.tx_done_o(/* unused */)
+     // from logic
+     ,.tx_v_i(rx_v_lo)
+     ,.tx_ready_and_o(rx_ready_and_li)
+     ,.tx_i(rx_lo)
      );
 
   logic [2:0] led_r, led_n;
@@ -160,18 +126,16 @@ module arty_uart
   always_comb begin
     led_n[0] = led_r[0] | rx_parity_error_lo;
     led_n[1] = led_r[1] | rx_frame_error_lo;
-    led_n[2] = led_r[2] | rx_overflow;
+    led_n[2] = led_r[2] | rx_overflow_error_lo;
     led_o[2:0] = led_r;
-    led_o[3] = ~external_reset_n_i;
+    led_o[3] = reset;
   end
 
   design_1_wrapper design_1_i
     (.external_clock_i(external_clock_i)
      ,.external_reset_n_i(external_reset_n_i)
      ,.clk_30M_o(clock_30M_lo)
-     ,.reset_30M_o(reset_30M_lo)
      ,.clk_60M_o(clock_60M_lo)
-     ,.reset_60M_o(reset_60M_lo)
      );
 
 endmodule

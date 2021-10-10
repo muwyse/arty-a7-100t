@@ -18,7 +18,7 @@
  *
  */
 
-`include "bp_common_defines.svh"
+`include "bsg_defines.v"
 
 module uart
     #(parameter clk_per_bit_p = 30 // 100 MHz clock / 1,000,000 Baud
@@ -56,6 +56,8 @@ module uart
     );
 
   // UART RX
+  logic rx_v_lo, rx_ready_and_li;
+  logic [data_bits_p-1:0] rx_lo;
   uart_rx
   #(.clk_per_bit_p(clk_per_bit_p)
     ,.data_bits_p(data_bits_p)
@@ -76,8 +78,6 @@ module uart
      );
 
   // UART RX Buffer
-  logic rx_v_lo, rx_ready_and_li;
-  logic [data_bits_p-1:0] rx_lo;
   if (rx_buffer_els_p == 0) begin : rx_passthrough
     assign rx_v_o = rx_v_lo;
     assign rx_o = rx_lo;

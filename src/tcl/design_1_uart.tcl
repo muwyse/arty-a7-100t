@@ -125,7 +125,6 @@ set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:clk_wiz:6.0\
-xilinx.com:ip:proc_sys_reset:5.0\
 "
 
    set list_ips_missing ""
@@ -208,14 +207,6 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_LOW} \
  ] $external_reset_n_i
-  set reset_30M_o [ create_bd_port -dir O -type rst reset_30M_o ]
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] $reset_30M_o
-  set reset_60M_o [ create_bd_port -dir O -type rst reset_60M_o ]
-  set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
- ] $reset_60M_o
 
   # Create instance: logic_clocks, and set properties
   set logic_clocks [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 logic_clocks ]
@@ -252,18 +243,10 @@ proc create_root_design { parentCell } {
    CONFIG.USE_LOCKED {false} \
  ] $logic_clocks
 
-  # Create instance: proc_sys_reset_0, and set properties
-  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
-
-  # Create instance: proc_sys_reset_1, and set properties
-  set proc_sys_reset_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_1 ]
-
   # Create port connections
-  connect_bd_net -net logic_clocks_clk_30M_o [get_bd_ports clk_30M_o] [get_bd_pins logic_clocks/clk_30M_o] [get_bd_pins proc_sys_reset_0/slowest_sync_clk]
-  connect_bd_net -net logic_clocks_clk_60M_o [get_bd_ports clk_60M_o] [get_bd_pins logic_clocks/clk_60M_o] [get_bd_pins proc_sys_reset_1/slowest_sync_clk]
-  connect_bd_net -net proc_sys_reset_0_mb_reset [get_bd_ports reset_30M_o] [get_bd_pins proc_sys_reset_0/mb_reset]
-  connect_bd_net -net proc_sys_reset_1_mb_reset [get_bd_ports reset_60M_o] [get_bd_pins proc_sys_reset_1/mb_reset]
-  connect_bd_net -net reset_1 [get_bd_ports external_reset_n_i] [get_bd_pins logic_clocks/resetn] [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins proc_sys_reset_1/ext_reset_in]
+  connect_bd_net -net logic_clocks_clk_30M_o [get_bd_ports clk_30M_o] [get_bd_pins logic_clocks/clk_30M_o]
+  connect_bd_net -net logic_clocks_clk_60M_o [get_bd_ports clk_60M_o] [get_bd_pins logic_clocks/clk_60M_o]
+  connect_bd_net -net reset_1 [get_bd_ports external_reset_n_i] [get_bd_pins logic_clocks/resetn]
   connect_bd_net -net sys_clock_1 [get_bd_ports external_clock_i] [get_bd_pins logic_clocks/clk_in1]
 
   # Create address segments

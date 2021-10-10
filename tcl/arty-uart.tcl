@@ -13,6 +13,7 @@ proc checkRequiredFiles { origin_dir} {
  "[file normalize "$origin_dir/src/v/led_pwm.sv"]"\
  "[file normalize "$origin_dir/src/v/uart_rx.sv"]"\
  "[file normalize "$origin_dir/src/v/uart_tx.sv"]"\
+ "[file normalize "$origin_dir/src/v/uart.sv"]"\
  "[file normalize "$origin_dir/src/v/arty_uart.sv"]"\
  "[file normalize "$origin_dir/src/xdc/constraints_uart.xdc"]"\
  "[file normalize "$origin_dir/src/tcl/design_1_uart.tcl"]"\
@@ -148,6 +149,7 @@ set files [list \
  [file normalize "${origin_dir}/src/v/led_pwm.sv"]\
  [file normalize "${origin_dir}/src/v/uart_rx.sv"]\
  [file normalize "${origin_dir}/src/v/uart_tx.sv"]\
+ [file normalize "${origin_dir}/src/v/uart.sv"]\
  [file normalize "${origin_dir}/src/v/arty_uart.sv"]\
 ]
 add_files -norecurse -fileset sources_1 $files
