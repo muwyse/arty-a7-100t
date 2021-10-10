@@ -5,7 +5,7 @@
  *
  */
 
-`include "bp_common_defines.svh"
+`include "bsg_defines.v"
 
 module uart_tx
     #(parameter clk_per_bit_p = 10416 // 100 MHz clock / 9600 Baud

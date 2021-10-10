@@ -3,11 +3,9 @@
  * UART message = 1 start bit, 5-9 data bits, [1 parity bit], 1 or 2 stop bits
  * start bit is low, stop bit is high
  *
- * TODO:
- * - report frame error if detected
  */
 
-`include "bp_common_defines.svh"
+`include "bsg_defines.v"
 
 module uart_rx
     #(parameter clk_per_bit_p = 10416 // 100 MHz clock / 9600 Baud
@@ -22,7 +20,8 @@ module uart_rx
     , input rx_i
     , output logic rx_v_o
     , output logic [data_bits_p-1:0] rx_o
-    , output logic rx_error_o
+    , output logic rx_parity_error_o
+    , output logic rx_frame_error_o
     );
 
     typedef enum logic [2:0] {
@@ -79,7 +78,8 @@ module uart_rx
         // outputs
         rx_o = rx_data_r;
         rx_v_o = rx_v_r;
-        rx_error_o = 1'b0;
+        rx_parity_error_o = 1'b0;
+        rx_frame_error_o = 1'b0;
 
         // input and data buffering
         // rx_i -> data_in_r -> data_r
@@ -147,11 +147,11 @@ module uart_rx
                     if (parity_odd_p == 1) begin
                       // odd parity -> parity bit set when count of ones in data
                       // bits is even (== 0), to make data + parity odd (== 1)
-                      rx_error_o = (~parity_cnt_r[0] & data_r);
+                      rx_parity_error_o = (~parity_cnt_r[0] & data_r);
                     end else begin
                       // even parity -> parity bit set when count of ones in data
                       // bits is odd (== 1), to make data + parity even (== 0)
-                      rx_error_o = (parity_cnt_r[0] & data_r);
+                      rx_parity_error_o = (parity_cnt_r[0] & data_r);
                     end
                 end else begin
                     clk_cnt_n = clk_cnt_r + 'd1;
@@ -161,7 +161,7 @@ module uart_rx
                 if (clk_cnt_r == (clk_per_bit_p - 'd1)) begin
                     clk_cnt_n = '0;
                     // error on stop bit if bit is low
-                    rx_error_o = ~rx_stop;
+                    rx_frame_error_o = ~rx_stop;
                     // stop bits received, make data valid next cycle
                     if (data_cnt_r == stop_bits_p-1) begin
                         rx_state_n = e_finish;
