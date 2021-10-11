@@ -93,7 +93,7 @@ module bp_cache_dma_to_axi4_lite
 
   always_comb begin
     dma_pkt = dma_pkt_li;
-    dma_pkt.addr = addr_lo;
+    dma_pkt.addr = addr_lo ^ dram_base_addr_gp;
   end
 
   // arbitrate incoming packet valid/yumi between read and write FSMs

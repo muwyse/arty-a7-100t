@@ -340,7 +340,7 @@ def _test_command(app: HostApp, args):
 if __name__ == "__main__":
     root_parser = argparse.ArgumentParser()
     root_parser.add_argument('-p', '--port', dest='port', type=str, default='COM4', help='Serial port (full path or name)')
-    root_parser.add_argument('-b', '--baud', dest='baud_rate', type=int, default=500000, help='Serial port baud rate')
+    root_parser.add_argument('-b', '--baud', dest='baud_rate', type=int, default=1000000, help='Serial port baud rate')
     root_parser.add_argument('-t', '--timeout', dest='timeout', type=float, default=3.0, help='Timeout in seconds')
 
     command_parsers = root_parser.add_subparsers(dest="command")

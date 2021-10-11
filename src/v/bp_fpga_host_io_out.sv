@@ -4,7 +4,7 @@
  *   bp_fpga_host_io_out.sv
  *
  * Description:
- *   FPGA Host IO Output module with UART Tx to PC Host and io_cmd/resp from BP.
+ *   FPGA Host IO Output module with io_cmd/resp from BP.
  *   This module sends IO from BlackParrot to the PC Host, for example, printf output.
  *
  * Inputs:
@@ -13,7 +13,7 @@
  *            - lowest priority, can block
  *
  *   nbf_i - NBF responses from bp_fpga_host_io_in.sv
- *         - includes nbf finish, nbf fence done, UART RX error, memory read response
+ *         - includes nbf finish, nbf fence done memory read response
  *         - highest priority (cannot block UART RX in bp_fpga_host_io_in)
  *
  * Outputs:
@@ -39,11 +39,7 @@ module bp_fpga_host_io_out
     , parameter nbf_data_width_p = dword_width_gp
     , localparam nbf_width_lp = `bp_fpga_host_nbf_width(nbf_addr_width_p, nbf_data_width_p)
 
-    , parameter uart_clk_per_bit_p = 10416 // 100 MHz clock / 9600 Baud
     , parameter uart_data_bits_p = 8 // between 5 and 9 bits
-    , parameter uart_parity_bit_p = 0 // 0 or 1
-    , parameter uart_stop_bits_p = 1 // 1 or 2
-    , parameter uart_parity_odd_p = 0 // 0 or 1
 
     , parameter nbf_buffer_els_p = 4
 
@@ -54,12 +50,13 @@ module bp_fpga_host_io_out
 
     `declare_bp_bedrock_mem_if_widths(paddr_width_p, dword_width_gp, lce_id_width_p, lce_assoc_p, io)
 
+    // TODO: use BlackParrot defined params
     , localparam putchar_base_addr_gp = paddr_width_p'(64'h0010_1000)
     , localparam finish_base_addr_gp  = paddr_width_p'(64'h0010_2???)
     , localparam putchar_core_base_addr_gp  = paddr_width_p'(64'h0010_3???)
     )
-  (input                                     clk_i
-   , input                                   reset_i
+  (input                                            clk_i
+   , input                                          reset_i
 
    // From BlackParrot
    , input [io_mem_msg_header_width_lp-1:0]         io_cmd_header_i
@@ -71,16 +68,18 @@ module bp_fpga_host_io_out
    , output logic [io_mem_msg_header_width_lp-1:0]  io_resp_header_o
    , output logic [dword_width_gp-1:0]              io_resp_data_o
    , output logic                                   io_resp_v_o
-   , input                                          io_resp_yumi_i
+   , input                                          io_resp_ready_and_i
    , output logic                                   io_resp_last_o
 
    // UART to PC Host
-   , output logic                            tx_o
+   , output logic [uart_data_bits_p-1:0]            tx_o
+   , output logic                                   tx_v_o
+   , input                                          tx_ready_and_i
 
    // Signals from FPGA Host IO In
-   , input [nbf_width_lp-1:0]                nbf_i
-   , input                                   nbf_v_i
-   , output logic                            nbf_ready_and_o
+   , input [nbf_width_lp-1:0]                       nbf_i
+   , input                                          nbf_v_i
+   , output logic                                   nbf_ready_and_o
    );
 
   `declare_bp_bedrock_mem_if(paddr_width_p, dword_width_gp, lce_id_width_p, lce_assoc_p, io)
@@ -137,10 +136,6 @@ module bp_fpga_host_io_out
   bp_fpga_host_nbf_s io_nbf_r, io_nbf_n;
   logic io_nbf_v, io_nbf_yumi;
 
-  // UART TX signals
-  logic tx_v_li, tx_ready_and_lo, tx_v_lo, tx_done_lo;
-  logic [uart_data_bits_p-1:0] tx_data_li;
-
   // NBF PISO signals
   logic nbf_piso_ready_and_lo;
 
@@ -194,30 +189,9 @@ module bp_fpga_host_io_out
      ,.data_i(nbf_buffer_lo)
      ,.ready_and_o(nbf_piso_ready_and_lo)
      // to uart tx
-     ,.data_o(tx_data_li)
-     ,.v_o(tx_v_li)
-     ,.ready_and_i(tx_ready_and_lo)
-     );
-
-  // UART TX
-  uart_tx
-   #(.clk_per_bit_p(uart_clk_per_bit_p)
-     ,.data_bits_p(uart_data_bits_p)
-     ,.parity_bit_p(uart_parity_bit_p)
-     ,.stop_bits_p(uart_stop_bits_p)
-     ,.parity_odd_p(uart_parity_odd_p)
-     )
-    tx
-    (.clk_i(clk_i)
-     ,.reset_i(reset_i)
-     // input
-     ,.tx_v_i(tx_v_li)
-     ,.tx_i(tx_data_li)
-     ,.tx_ready_and_o(tx_ready_and_lo)
-     // output
-     ,.tx_v_o(tx_v_lo)
-     ,.tx_o(tx_o)
-     ,.tx_done_o(tx_done_lo)
+     ,.data_o(tx_o)
+     ,.v_o(tx_v_o)
+     ,.ready_and_i(tx_ready_and_i)
      );
 
   typedef enum logic [3:0]
@@ -280,7 +254,7 @@ module bp_fpga_host_io_out
         io_resp = io_cmd;
         io_resp_data_o = io_cmd_data;
         io_resp_v_o = io_cmd_v;
-        io_cmd_yumi = io_cmd_v & io_resp_yumi_i;
+        io_cmd_yumi = io_cmd_v & io_resp_ready_and_i;
         state_n = io_cmd_yumi ? e_send_nbf : e_ready;
       end
       e_send_nbf: begin

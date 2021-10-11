@@ -1,0 +1,46 @@
+From 263d51bfd834bc4456388045fc4f22b0db929bc3 Mon Sep 17 00:00:00 2001
+From: Mark Wyse <muwyse@gmail.com>
+Date: Mon, 11 Oct 2021 14:09:41 -0700
+Subject: [PATCH] adjust tinyparrot config
+
+---
+ .../src/include/bp_common_aviary_pkgdef.svh   | 22 ++-----------------
+ 1 file changed, 2 insertions(+), 20 deletions(-)
+
+diff --git a/bp_common/src/include/bp_common_aviary_pkgdef.svh b/bp_common/src/include/bp_common_aviary_pkgdef.svh
+index 46422959..7e63a0fb 100644
+--- a/bp_common/src/include/bp_common_aviary_pkgdef.svh
++++ b/bp_common/src/include/bp_common_aviary_pkgdef.svh
+@@ -336,27 +336,9 @@
+                         );
+ 
+   localparam bp_proc_param_s bp_unicore_tinyparrot_override_p =
+-    '{paddr_width         : 34
+-
+-      ,branch_metadata_fwd_width: 28
+-      ,btb_tag_width            : 6
+-      ,btb_idx_width            : 4
+-      ,bht_idx_width            : 5
+-      ,bht_row_els              : 2
+-      ,ghist_width              : 2
+-
+-      ,icache_sets        : 512
+-      ,icache_assoc       : 1
+-      ,icache_block_width : 64
+-      ,icache_fill_width  : 64
+-
+-      ,dcache_sets        : 512
+-      ,dcache_assoc       : 1
+-      ,dcache_block_width : 64
+-      ,dcache_fill_width  : 64
+-
++    '{icache_assoc        : 2
++      ,dcache_assoc       : 2
+       ,l2_en              : 0
+-
+       ,default : "inv"
+       };
+   `bp_aviary_derive_cfg(bp_unicore_tinyparrot_cfg_p
+-- 
+2.22.0.windows.1
+

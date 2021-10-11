@@ -26,11 +26,13 @@ module bp_fpga_host
     , parameter nbf_data_width_p = dword_width_gp
     , localparam nbf_width_lp = `bp_fpga_host_nbf_width(nbf_addr_width_p, nbf_data_width_p)
 
-    , parameter uart_clk_per_bit_p = 10416 // 100 MHz clock / 9600 Baud
+    , parameter uart_clk_per_bit_p = 30 // 30 MHz clock / 1000000 Baud
     , parameter uart_data_bits_p = 8 // between 5 and 9 bits
-    , parameter uart_parity_bit_p = 0 // 0 or 1
+    , parameter uart_parity_bits_p = 0 // 0 or 1
     , parameter uart_parity_odd_p = 0 // 0 for even parity, 1 for odd parity
     , parameter uart_stop_bits_p = 1 // 1 or 2
+    , parameter uart_rx_buffer_els_p = 256
+    , parameter uart_tx_buffer_els_p = 256
 
     , parameter io_in_nbf_buffer_els_p = 4
     , parameter io_out_nbf_buffer_els_p = 4
@@ -50,14 +52,14 @@ module bp_fpga_host
    , output logic [io_mem_msg_header_width_lp-1:0]  io_resp_header_o
    , output logic [dword_width_gp-1:0]              io_resp_data_o
    , output logic                                   io_resp_v_o
-   , input                                          io_resp_yumi_i
+   , input                                          io_resp_ready_and_i
    , output logic                                   io_resp_last_o
 
    // To BlackParrot
    , output logic [io_mem_msg_header_width_lp-1:0]  io_cmd_header_o
    , output logic [dword_width_gp-1:0]              io_cmd_data_o
    , output logic                                   io_cmd_v_o
-   , input                                          io_cmd_yumi_i
+   , input                                          io_cmd_ready_and_i
    , output logic                                   io_cmd_last_o
 
    , input [io_mem_msg_header_width_lp-1:0]         io_resp_header_i
@@ -70,8 +72,10 @@ module bp_fpga_host
    , input                                          rx_i
    , output logic                                   tx_o
 
-   // Error bit - typically map to FPGA LED
-   , output logic                                   error_o
+   // UART errors
+   , output logic                                   rx_parity_error_o
+   , output logic                                   rx_frame_error_o
+   , output logic                                   rx_overflow_error_o
 
    );
 
@@ -83,8 +87,8 @@ module bp_fpga_host
     $fatal(0,"NBF data width must be 64-bits");
   if(!(uart_data_bits_p == 8))
     $fatal(0,"UART must use 8 data bits");
-  if(!(uart_parity_bit_p == 0 || uart_parity_bit_p == 1))
-    $fatal(0,"UART parity_bit_p must be 0 (none) or 1");
+  if(!(uart_parity_bits_p == 0 || uart_parity_bits_p == 1))
+    $fatal(0,"UART parity_bits_p must be 0 (none) or 1");
   if(!(uart_parity_odd_p == 0 || uart_parity_odd_p == 1))
     $fatal(0,"UART parity_odd_p must be 0 (even) or 1 (odd)");
   if(!(uart_stop_bits_p == 1 || uart_stop_bits_p == 2))
@@ -94,6 +98,43 @@ module bp_fpga_host
 
   `declare_bp_fpga_host_nbf_s(nbf_addr_width_p, nbf_data_width_p);
 
+  logic rx_v_lo, rx_yumi_li;
+  logic [uart_data_bits_p-1:0] rx_lo;
+  logic tx_v_li, tx_ready_and_lo;
+  logic [uart_data_bits_p-1:0] tx_li;
+  // UART
+  uart
+   #(.clk_per_bit_p(uart_clk_per_bit_p)
+     ,.data_bits_p(uart_data_bits_p)
+     ,.parity_bits_p(uart_parity_bits_p)
+     ,.stop_bits_p(uart_stop_bits_p)
+     ,.parity_odd_p(uart_parity_odd_p)
+     ,.rx_buffer_els_p(uart_rx_buffer_els_p)
+     ,.tx_buffer_els_p(uart_tx_buffer_els_p)
+     )
+    uart_buffered
+    (.clk_i(clock)
+     ,.reset_i(reset)
+     // from external
+     ,.rx_i(rx_i)
+     // to logic
+     ,.rx_v_o(rx_v_lo)
+     ,.rx_o(rx_lo)
+     ,.rx_yumi_i(rx_yumi_li)
+     // rx errors
+     ,.rx_parity_error_o(rx_parity_error_o)
+     ,.rx_frame_error_o(rx_frame_error_o)
+     ,.rx_overflow_error_o(rx_overflow_error_o)
+     // to external
+     ,.tx_o(tx_o)
+     ,.tx_v_o(/* unused */)
+     ,.tx_done_o(/* unused */)
+     // from logic
+     ,.tx_v_i(tx_v_li)
+     ,.tx_ready_and_o(tx_ready_and_lo)
+     ,.tx_i(tx_li)
+     );
+
   bp_fpga_host_nbf_s nbf_lo;
   wire nbf_v_lo, nbf_ready_and_li;
 
@@ -101,12 +142,7 @@ module bp_fpga_host
    #(.bp_params_p(bp_params_p)
      ,.nbf_addr_width_p(nbf_addr_width_p)
      ,.nbf_data_width_p(nbf_data_width_p)
-     ,.uart_clk_per_bit_p(uart_clk_per_bit_p)
      ,.uart_data_bits_p(uart_data_bits_p)
-     ,.uart_parity_bit_p(uart_parity_bit_p)
-     ,.uart_parity_odd_p(uart_parity_odd_p)
-     ,.uart_stop_bits_p(uart_stop_bits_p)
-     ,.nbf_buffer_els_p(io_in_nbf_buffer_els_p)
      )
     host_io_in
     (.clk_i(clk_i)
@@ -114,30 +150,29 @@ module bp_fpga_host
      ,.io_cmd_header_o(io_cmd_header_o)
      ,.io_cmd_data_o(io_cmd_data_o)
      ,.io_cmd_v_o(io_cmd_v_o)
-     ,.io_cmd_yumi_i(io_cmd_yumi_i)
+     ,.io_cmd_ready_and_i(io_cmd_ready_and_i)
      ,.io_cmd_last_o(io_cmd_last_o)
      ,.io_resp_header_i(io_resp_header_i)
      ,.io_resp_data_i(io_resp_data_i)
      ,.io_resp_v_i(io_resp_v_i)
      ,.io_resp_ready_and_o(io_resp_ready_and_o)
      ,.io_resp_last_i(io_resp_last_i)
-     ,.rx_i(rx_i)
+     ,.rx_i(rx_lo)
+     ,.rx_v_i(rx_v_lo)
+     ,.rx_yumi_o(rx_yumi_li)
+     ,.rx_parity_error_i(rx_parity_error_o)
+     ,.rx_frame_error_i(rx_frame_error_o)
+     ,.rx_overflow_error_i(rx_overflow_error_o)
      ,.nbf_o(nbf_lo)
      ,.nbf_v_o(nbf_v_lo)
      ,.nbf_ready_and_i(nbf_ready_and_li)
-     ,.error_o(error_o)
      );
 
   bp_fpga_host_io_out
    #(.bp_params_p(bp_params_p)
      ,.nbf_addr_width_p(nbf_addr_width_p)
      ,.nbf_data_width_p(nbf_data_width_p)
-     ,.uart_clk_per_bit_p(uart_clk_per_bit_p)
      ,.uart_data_bits_p(uart_data_bits_p)
-     ,.uart_parity_bit_p(uart_parity_bit_p)
-     ,.uart_parity_odd_p(uart_parity_odd_p)
-     ,.uart_stop_bits_p(uart_stop_bits_p)
-     ,.nbf_buffer_els_p(io_out_nbf_buffer_els_p)
      )
     host_io_out
     (.clk_i(clk_i)
@@ -150,9 +185,11 @@ module bp_fpga_host
      ,.io_resp_header_o(io_resp_header_o)
      ,.io_resp_data_o(io_resp_data_o)
      ,.io_resp_v_o(io_resp_v_o)
-     ,.io_resp_yumi_i(io_resp_yumi_i)
+     ,.io_resp_ready_and_i(io_resp_ready_and_i)
      ,.io_resp_last_o(io_resp_last_o)
-     ,.tx_o(tx_o)
+     ,.tx_o(tx_li)
+     ,.tx_v_o(tx_v_li)
+     ,.tx_ready_and_i(tx_ready_and_lo)
      ,.nbf_i(nbf_lo)
      ,.nbf_v_i(nbf_v_lo)
      ,.nbf_ready_and_o(nbf_ready_and_li)

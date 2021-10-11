@@ -15,6 +15,7 @@ proc checkRequiredFiles { origin_dir} {
  "[file normalize "$origin_dir/src/v/bp_cache_dma_to_axi4_lite.sv"]"\
  "[file normalize "$origin_dir/src/v/uart_rx.sv"]"\
  "[file normalize "$origin_dir/src/v/uart_tx.sv"]"\
+ "[file normalize "$origin_dir/src/v/uart.sv"]"\
  "[file normalize "$origin_dir/src/include/bp_fpga_host_pkg.sv"]"\
  "[file normalize "$origin_dir/src/v/bp_fpga_host_io_in.sv"]"\
  "[file normalize "$origin_dir/src/v/bp_fpga_host_io_out.sv"]"\
@@ -156,6 +157,7 @@ set files [list \
  [file normalize "${origin_dir}/src/v/bp_cache_dma_to_axi4_lite.sv"]\
  [file normalize "${origin_dir}/src/v/uart_rx.sv"]\
  [file normalize "${origin_dir}/src/v/uart_tx.sv"]\
+ [file normalize "${origin_dir}/src/v/uart.sv"]\
  [file normalize "${origin_dir}/src/include/bp_fpga_host_pkg.sv"]\
  [file normalize "${origin_dir}/src/v/bp_fpga_host_io_in.sv"]\
  [file normalize "${origin_dir}/src/v/bp_fpga_host_io_out.sv"]\

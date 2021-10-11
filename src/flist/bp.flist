@@ -237,6 +237,7 @@ $BP_ME_DIR/src/v/dev/bp_me_loopback.sv
 $BP_ME_DIR/src/v/cce/bp_uce.sv
 $BP_ME_DIR/src/v/network/bp_me_cord_to_id.sv
 $BP_ME_DIR/src/v/network/bp_me_xbar_stream.sv
+$BP_ME_DIR/src/v/network/bp_me_xbar_stream_buffered.sv
 $BP_ME_DIR/src/v/network/bp_me_stream_pump_in.sv
 $BP_ME_DIR/src/v/network/bp_me_stream_pump_out.sv
 ## TOP

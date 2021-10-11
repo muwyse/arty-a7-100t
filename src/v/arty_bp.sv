@@ -24,17 +24,19 @@ module arty_bp
   import bp_me_pkg::*;
   import bp_fpga_host_pkg::*;
 
-  #(parameter bp_params_e bp_params_p = e_bp_unicore_l1_tiny_cfg
+  #(parameter bp_params_e bp_params_p = e_bp_unicore_tinyparrot_cfg
    `declare_bp_proc_params(bp_params_p)
     , parameter nbf_addr_width_p = paddr_width_p
     , parameter nbf_data_width_p = dword_width_gp
     , localparam nbf_width_lp = `bp_fpga_host_nbf_width(nbf_addr_width_p, nbf_data_width_p)
 
-    , parameter uart_clk_per_bit_p = 61 // 30.272728 MHz clock, 500000 baud
+    , parameter uart_clk_per_bit_p = 30 // 30 MHz clock, 1000000 baud
     , parameter uart_data_bits_p = 8 // between 5 and 9 bits
-    , parameter uart_parity_bit_p = 0 // 0 or 1
+    , parameter uart_parity_bits_p = 0 // 0 or 1
     , parameter uart_parity_odd_p = 0 // 0 for even parity, 1 for odd parity
     , parameter uart_stop_bits_p = 1 // 1 or 2
+    , parameter uart_rx_buffer_els_p = 256
+    , parameter uart_tx_buffer_els_p = 256
 
     , parameter io_in_nbf_buffer_els_p = 4
     , parameter io_out_nbf_buffer_els_p = 4
@@ -71,8 +73,6 @@ module arty_bp
   , input uart_rx_i
   , output logic uart_tx_o
   );
-
-  assign led_o[3] = external_reset_n_i ? 1'b0 : 1'b1;
 
   wire proc_reset_o;
 
@@ -136,19 +136,36 @@ module arty_bp
     end
   end
 
+  logic rx_parity_error_lo, rx_frame_error_lo, rx_overflow_error_lo;
+
+  assign led_o[3] = external_reset_n_i ? 1'b0 : 1'b1;
+  logic led_r, led_n;
+  always_ff @(posedge s_axi_clk) begin
+    if (reset_r) begin
+      led_r <= '0;
+    end else begin
+      led_r <= led_n;
+    end
+  end
+
+  always_comb begin
+    led_n = led_r | rx_parity_error_lo | rx_frame_error_lo | rx_overflow_error_lo;
+    led_o[0] = led_r;
+  end
+
   `declare_bp_bedrock_mem_if(paddr_width_p, dword_width_gp, lce_id_width_p, lce_assoc_p, io)
   // I/O command buses
   // to FPGA Host
   bp_bedrock_io_mem_msg_header_s fpga_host_io_cmd_li, fpga_host_io_resp_lo;
   logic [dword_width_gp-1:0] fpga_host_io_cmd_data_li, fpga_host_io_resp_data_lo;
   logic fpga_host_io_cmd_v_li, fpga_host_io_cmd_ready_and_lo;
-  logic fpga_host_io_resp_v_lo, fpga_host_io_resp_yumi_li;
+  logic fpga_host_io_resp_v_lo, fpga_host_io_resp_ready_and_li;
   logic fpga_host_io_cmd_last_li, fpga_host_io_resp_last_lo;
 
   // from FPGA Host
   bp_bedrock_io_mem_msg_header_s fpga_host_io_cmd_lo, fpga_host_io_resp_li;
   logic [dword_width_gp-1:0] fpga_host_io_cmd_data_lo, fpga_host_io_resp_data_li;
-  logic fpga_host_io_cmd_v_lo, fpga_host_io_cmd_yumi_li;
+  logic fpga_host_io_cmd_v_lo, fpga_host_io_cmd_ready_and_li;
   logic fpga_host_io_resp_v_li, fpga_host_io_resp_ready_and_lo;
   logic fpga_host_io_cmd_last_lo, fpga_host_io_resp_last_li;
 
@@ -172,9 +189,11 @@ module arty_bp
       ,.nbf_data_width_p        (nbf_data_width_p)
       ,.uart_clk_per_bit_p      (uart_clk_per_bit_p)
       ,.uart_data_bits_p        (uart_data_bits_p)
-      ,.uart_parity_bit_p       (uart_parity_bit_p)
+      ,.uart_parity_bits_p      (uart_parity_bits_p)
       ,.uart_parity_odd_p       (uart_parity_odd_p)
       ,.uart_stop_bits_p        (uart_stop_bits_p)
+      ,.uart_rx_buffer_els_p    (uart_rx_buffer_els_p)
+      ,.uart_tx_buffer_els_p    (uart_tx_buffer_els_p)
       ,.io_in_nbf_buffer_els_p  (io_in_nbf_buffer_els_p)
       ,.io_out_nbf_buffer_els_p (io_out_nbf_buffer_els_p)
       )
@@ -192,14 +211,14 @@ module arty_bp
        ,.io_resp_header_o    (fpga_host_io_resp_lo)
        ,.io_resp_data_o      (fpga_host_io_resp_data_lo)
        ,.io_resp_v_o         (fpga_host_io_resp_v_lo)
-       ,.io_resp_yumi_i      (fpga_host_io_resp_yumi_li)
+       ,.io_resp_ready_and_i (fpga_host_io_resp_ready_and_li)
        ,.io_resp_last_o      (fpga_host_io_resp_last_lo)
 
        // from FPGA Host
        ,.io_cmd_header_o     (fpga_host_io_cmd_lo)
        ,.io_cmd_data_o       (fpga_host_io_cmd_data_lo)
        ,.io_cmd_v_o          (fpga_host_io_cmd_v_lo)
-       ,.io_cmd_yumi_i       (fpga_host_io_cmd_yumi_li)
+       ,.io_cmd_ready_and_i  (fpga_host_io_cmd_ready_and_li)
        ,.io_cmd_last_o       (fpga_host_io_cmd_last_lo)
 
        ,.io_resp_header_i    (fpga_host_io_resp_li)
@@ -213,7 +232,9 @@ module arty_bp
        ,.tx_o(uart_tx_o)
 
        // UART error
-       ,.error_o(led_o[0])
+       ,.rx_parity_error_o(rx_parity_error_lo)
+       ,.rx_frame_error_o(rx_frame_error_lo)
+       ,.rx_overflow_error_o(rx_overflow_error_lo)
       );
 
   // Black Parrot core
@@ -233,14 +254,14 @@ module arty_bp
      ,.io_resp_header_i     (fpga_host_io_resp_lo)
      ,.io_resp_data_i       (fpga_host_io_resp_data_lo)
      ,.io_resp_v_i          (fpga_host_io_resp_v_lo)
-     ,.io_resp_yumi_o       (fpga_host_io_resp_yumi_li)
+     ,.io_resp_ready_and_o  (fpga_host_io_resp_ready_and_li)
      ,.io_resp_last_i       (fpga_host_io_resp_last_lo)
 
      // I/O from FPGA host
      ,.io_cmd_header_i      (fpga_host_io_cmd_lo)
      ,.io_cmd_data_i        (fpga_host_io_cmd_data_lo)
      ,.io_cmd_v_i           (fpga_host_io_cmd_v_lo)
-     ,.io_cmd_yumi_o        (fpga_host_io_cmd_yumi_li)
+     ,.io_cmd_ready_and_o   (fpga_host_io_cmd_ready_and_li)
      ,.io_cmd_last_i        (fpga_host_io_cmd_last_lo)
 
      ,.io_resp_header_o     (fpga_host_io_resp_li)
