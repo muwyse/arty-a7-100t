@@ -2,4 +2,5 @@
 *.log
 arty-memory/
 arty-parrot/
+arty-uart/
 py/__pycache__/

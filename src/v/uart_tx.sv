@@ -5,12 +5,12 @@
  *
  */
 
-`include "bp_common_defines.svh"
+`include "bsg_defines.v"
 
 module uart_tx
     #(parameter clk_per_bit_p = 10416 // 100 MHz clock / 9600 Baud
       , parameter data_bits_p = 8 // between 5 and 9 bits
-      , parameter parity_bit_p = 0 // 0 or 1
+      , parameter parity_bits_p = 0 // 0 or 1
       , parameter parity_odd_p = 0 // 0 for even parity, 1 for odd parity
       , parameter stop_bits_p = 1 // 1 or 2
       )
@@ -137,7 +137,7 @@ module uart_tx
                 end else begin
                     // current bit done, reset clock counter
                     clk_cnt_n = '0;
-                    if (parity_bit_p == 1) begin
+                    if (parity_bits_p == 1) begin
                         parity_cnt_n = parity_cnt_r + tx_data_r;
                     end
                     // more bits to send, stay in state, increment bit count
@@ -147,7 +147,7 @@ module uart_tx
                     end else begin
                         // reset bit count
                         data_cnt_n = '0;
-                        if (parity_bit_p == 1) begin
+                        if (parity_bits_p == 1) begin
                             tx_state_n = e_parity_bit;
                             if (parity_odd_p == 1) begin
                               // odd parity -> parity bit set when count of ones in data
