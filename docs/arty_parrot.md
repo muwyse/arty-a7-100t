@@ -9,7 +9,7 @@ We call this design ArtyParrot.
 
 ## Requirements
 
-In addition to the requirements described in the [README](README.md) for the memory-only design,
+In addition to the requirements described in the [README](../README.md) for the memory-only design,
 ArtyParrot requires `python 3.8` to execute the Host PC python script that communicates to the
 on-board UART instantiated by the design.
 
@@ -53,7 +53,7 @@ directory of this repository as follow:
 `python py\host.py -p <serial port> load --listen .\nbf\hello_world.nbf`
 
 You should see the following output:
-![Hello World Image](docs/arty_parrot_hello_world.PNG)
+![Hello World Image](arty_parrot_hello_world.PNG)
 
 ## Software Development Kit (SDK)
 
