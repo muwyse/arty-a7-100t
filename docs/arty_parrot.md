@@ -15,7 +15,7 @@ on-board UART instantiated by the design.
 
 ## Setup
 
-The BlackParrot processor code is included as a submodule located at `src/bp` in this repository.
+The BlackParrot processor code is included as a submodule located at `blackparrot/rtl` in this repository.
 After checking out this module, run the following commands from the top-level directory to
 fetch the required code:
 
@@ -25,14 +25,6 @@ cd blackparrot/rtl
 git submodule update --init --checkout --recursive external/basejump_stl
 git submodule update --init --checkout --recursive external/HardFloat
 ```
-
-BlackParrot contains floating-point hardware that is optimized for an ASIC toolflow. This code
-is not necessarily optimal for an FPGA design, however there is a small code patch that
-introduces manual retiming to the FPU to improve achievable clock frequency for the processor.
-Apply this patch, from the `blackparrot/rtl` directory with:
-`git am ../../src/patch/fpu_retiming.patch`
-
-With the code patched, we are ready to generate the ArtyParrot project design.
 
 To generate the project:
 `vivado -mode batch -source tcl/arty-parrot.tcl`
